@@ -1700,6 +1700,7 @@ function confirmStartFast() { closeConfirm(); startFast(); }
 
 function startFast() {
   state.running=true; state.startTs=Date.now();
+  state.eatingWindowEnd=null;
   goalNotified=false; phaseNotified=-1;
   if('Notification'in window&&Notification.permission==='default') Notification.requestPermission();
   // Unlock egg badge on first fast start
