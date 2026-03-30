@@ -1377,7 +1377,9 @@ function renderEatingWindow() {
   const remaining = state.eatingWindowEnd - Date.now();
   if (remaining <= 0) {
     state.eatingWindowEnd = null; saveState();
-    card.style.display = 'none'; return;
+    card.style.display = 'none';
+    clearInterval(ticker); ticker = null;
+    return;
   }
   card.style.display = 'flex';
   countdown.textContent = fmt(remaining);
@@ -1728,7 +1730,8 @@ function stopFast() {
   const windowH = libre ? 8 : 8;
   state.eatingWindowEnd = Date.now() + windowH*3600000;
 
-  clearInterval(ticker); ticker=null;
+  clearInterval(ticker);
+  ticker = setInterval(() => { renderEatingWindow(); saveState(); }, 1000);
   goalNotified=false; phaseNotified=-1;
   checkBadges();
   saveState(); render(); renderCycle();
