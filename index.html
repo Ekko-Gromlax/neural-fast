@@ -1097,6 +1097,26 @@
   </div>
 </div>
 
+<!-- ══ STOP FAST MODAL ══ -->
+<div class="modal-overlay" id="stopOverlay" onclick="closeStop(event)">
+  <div class="modal">
+    <h3>Fin du jeûne</h3>
+    <p>À quelle heure as-tu rompu ton jeûne ?</p>
+    <div class="modal-presets">
+      <button class="preset-btn" onclick="applyStopPreset(30)">− 30 min</button>
+      <button class="preset-btn" onclick="applyStopPreset(60)">− 1h</button>
+      <button class="preset-btn" onclick="applyStopPreset(90)">− 1h30</button>
+      <button class="preset-btn" onclick="applyStopPreset(120)">− 2h</button>
+    </div>
+    <div class="modal-divider"><span>ou heure exacte</span></div>
+    <input type="time" class="modal-time-input" id="stopTimeInput">
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeStop()">Annuler</button>
+      <button class="modal-confirm" onclick="confirmStop()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ CONFIRM DIALOG (cycle advisory) ══ -->
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-modal">
@@ -1684,7 +1704,12 @@ function renderBadges() {
 // ── FAST ACTIONS ──────────────────────────────────────────────────────────────
 function handleFastToggle() {
   if(state.running){
-    stopFast();
+    // Pré-remplir avec l'heure actuelle
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('stopTimeInput').value = `${hh}:${mm}`;
+    document.getElementById('stopOverlay').classList.add('open');
   } else {
     const ph = getCyclePhase(state.cycleDay);
     if(ph.stars <= 1){
@@ -1713,8 +1738,9 @@ function startFast() {
   render(); renderCycle(); showNotif('Jeûne démarré !');
 }
 
-function stopFast() {
-  const elapsed = Date.now()-state.startTs;
+function stopFast(endTs) {
+  endTs = endTs || Date.now();
+  const elapsed = endTs - state.startTs;
   const libre = state.goalHours === 0;
   const entry = {
     startTs: state.startTs,
@@ -1728,7 +1754,7 @@ function stopFast() {
 
   // Eating window: 8h for fixed goals, 24h - goalHours for libre
   const windowH = libre ? 8 : 8;
-  state.eatingWindowEnd = Date.now() + windowH*3600000;
+  state.eatingWindowEnd = endTs + windowH*3600000;
 
   clearInterval(ticker);
   ticker = setInterval(() => { renderEatingWindow(); saveState(); }, 1000);
@@ -1798,6 +1824,27 @@ document.getElementById('ringWrap').addEventListener('click', () => {
   document.getElementById('adjustTimeInput').value = `${hh}:${mm}`;
   document.getElementById('adjustOverlay').classList.add('open');
 });
+
+function closeStop(e) {
+  if(!e||e.target===document.getElementById('stopOverlay'))
+    document.getElementById('stopOverlay').classList.remove('open');
+}
+
+function applyStopPreset(minutes) {
+  const ts = Date.now() - minutes*60000;
+  document.getElementById('stopOverlay').classList.remove('open');
+  stopFast(ts);
+}
+
+function confirmStop() {
+  const val = document.getElementById('stopTimeInput').value;
+  if(!val) return;
+  const [h,m] = val.split(':').map(Number);
+  const d = new Date(); d.setHours(h,m,0,0);
+  if(d.getTime() > Date.now()) d.setDate(d.getDate()-1);
+  document.getElementById('stopOverlay').classList.remove('open');
+  stopFast(d.getTime());
+}
 
 function closeAdjust(e) {
   if(!e||e.target===document.getElementById('adjustOverlay'))
